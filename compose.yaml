@@ -1,0 +1,29 @@
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: weatherflow-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: weatherflow
+      POSTGRES_USER: weatherflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
+
+    ports:
+      - "127.0.0.1:55435:5432"
+
+    volumes:
+      - weatherflow_pgdata:/var/lib/postgresql/data
+      - ./sql/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U weatherflow -d weatherflow
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  weatherflow_pgdata:
