@@ -142,7 +142,7 @@ dos dados.
 Os resultados demonstram que a base consultada
 não apresenta duplicações da chave composta
 nem identificações incompletas.
-```
+
 
 ## 9. Histórico de execuções do Apache Airflow
 
