@@ -1,105 +1,76 @@
-
 # WeatherFlow — Pipeline de Engenharia de Dados Meteorológicos
 
-Projeto de Engenharia de Dados desenvolvido com Python,
-Open-Meteo API, PostgreSQL, Apache Airflow, Docker e Streamlit.
+**Pipeline end-to-end de previsões meteorológicas com Python, Open-Meteo, PostgreSQL, Apache Airflow, Docker e Streamlit.**
 
-O WeatherFlow automatiza a coleta, transformação,
-armazenamento e análise de previsões meteorológicas
-para diferentes cidades brasileiras.
+O **WeatherFlow** coleta previsões meteorológicas de cidades brasileiras, preserva as respostas brutas em JSON, transforma e valida os dados, armazena os resultados em PostgreSQL e disponibiliza indicadores em um dashboard Streamlit. A execução do pipeline é orquestrada pelo Apache Airflow.
 
-**Status:** Etapas 1 a 5 concluídas e validadas.
-Etapa 6 — Documentação e apresentação do projeto.
+**Status:** projeto concluído — etapas 1 a 6 implementadas e validadas localmente.
+
+**[Arquitetura](docs/arquitetura.md) · [Guia de execução](docs/execucao.md) · [Observabilidade](docs/observabilidade.md) · [Evidências técnicas](docs/evidencias.md)**
 
 ## 1. Problema de negócio
 
-Empresas com operações em diferentes cidades podem
-utilizar previsões meteorológicas para apoiar decisões
-relacionadas a logística, planejamento e operações.
+Empresas com operações em diferentes cidades podem usar previsões meteorológicas para apoiar o planejamento logístico e operacional. Quando a consulta é manual, surgem dificuldades para padronizar informações, comparar localidades, rastrear coletas e disponibilizar indicadores consistentes.
 
-A consulta manual dessas informações dificulta:
-
-- A padronização dos dados.
-- A comparação entre cidades.
-- A rastreabilidade das coletas.
-- A manutenção de um histórico de previsões.
-- A disponibilização de indicadores analíticos.
-
-O WeatherFlow demonstra como resolver esses desafios
-com um pipeline automatizado e uma camada de Analytics.
+O WeatherFlow demonstra uma solução de Engenharia de Dados para centralizar essas previsões e torná-las acessíveis para análise. **Os dados representam previsões, não medições meteorológicas observadas.**
 
 ## 2. Objetivos
 
-- Consumir dados meteorológicos de uma API REST.
-- Preservar os dados brutos em JSON.
-- Validar e transformar os registros.
-- Armazenar os dados em PostgreSQL.
-- Evitar duplicações durante o carregamento.
-- Orquestrar o pipeline com Apache Airflow.
-- Disponibilizar consultas SQL.
-- Construir um dashboard com Streamlit.
-- Aplicar testes automatizados e boas práticas de software.
+- Consumir dados de uma API REST pública.
+- Preservar os dados brutos em arquivos JSON.
+- Validar e transformar registros com Python.
+- Armazenar previsões em PostgreSQL, preservando o histórico das coletas.
+- Evitar duplicações ao reprocessar a mesma coleta.
+- Orquestrar a execução com Apache Airflow.
+- Aplicar verificações de integridade com SQL e testes automatizados.
+- Disponibilizar indicadores e filtros em um dashboard Streamlit.
 
 ## 3. Tecnologias
 
-| Tecnologia | Utilização |
+| Tecnologia | Papel no projeto |
 |---|---|
-| Python 3.12 | Desenvolvimento do ETL |
-| Requests | Integração HTTP com a API |
-| Open-Meteo | Fonte de previsões meteorológicas |
-| JSON | Preservação dos dados brutos |
-| PostgreSQL | Persistência relacional |
-| SQL | Consultas e agregações |
+| Python 3.12 | Extração, transformação, carregamento e camada analítica |
+| Requests | Requisições HTTP à API |
+| Open-Meteo | Fonte das previsões meteorológicas |
+| JSON | Armazenamento dos dados brutos |
+| PostgreSQL 17 | Persistência relacional |
+| SQL | Consultas e verificações de qualidade |
 | Docker Compose | Infraestrutura local |
-| Apache Airflow | Orquestração do pipeline |
+| Apache Airflow 2.10.5 | Orquestração do pipeline |
 | Streamlit | Dashboard analítico |
 | Pytest | Testes automatizados |
-| Ruff | Lint e formatação |
-| UV | Gerenciamento de dependências |
-| Git e GitHub | Versionamento e colaboração |
+| Ruff | Análise estática e formatação |
+| UV | Gerenciamento de dependências e execução |
+| Git e GitHub | Versionamento, revisão e publicação |
 
 ## 4. Arquitetura
 
 ```mermaid
 flowchart TD
-    A["Open-Meteo API"] --> B["Extração Python"]
-    B --> C["JSON Raw"]
+    A["Open-Meteo API"] --> B["Extração com Python"]
+    B --> C["Arquivos JSON brutos"]
     C --> D["Transformação e validação"]
-    D --> E["PostgreSQL"]
-    E --> F["Consultas SQL"]
-    F --> G["Streamlit Dashboard"]
-
+    D --> E[("PostgreSQL")]
+    E --> F["Consultas SQL e camada analítica"]
+    F --> G["Dashboard Streamlit"]
     H["Apache Airflow"] -.-> B
     H -.-> D
     H -.-> E
 ```
 
-O Apache Airflow coordena as tarefas do pipeline.
-O Streamlit consulta os dados persistidos no PostgreSQL.
+A DAG `weatherflow_daily` coordena duas tarefas: `extract_weather` e `load_weather`. O dashboard consulta os dados persistidos no PostgreSQL e apresenta a previsão mais recente por cidade e data de referência.
 
-A documentação detalhada está em
-[Arquitetura](docs/arquitetura.md).
+Para decisões de arquitetura e detalhes de cada componente, consulte **[docs/arquitetura.md](docs/arquitetura.md)**.
 
-## 5. Cidades monitoradas
+## 5. Escopo e indicadores
 
-- São Paulo — SP
-- Rio de Janeiro — RJ
-- Curitiba — PR
+**Cidades monitoradas:** São Paulo (SP), Rio de Janeiro (RJ) e Curitiba (PR).
 
-## 6. Indicadores
+**Indicadores disponíveis:** temperatura máxima e mínima previstas, precipitação prevista, data da previsão e horário da coleta.
 
-O WeatherFlow acompanha:
+O histórico pode conter diferentes versões de previsão para a mesma cidade e data, pois uma nova coleta não substitui necessariamente uma coleta anterior.
 
-- Temperatura máxima prevista.
-- Temperatura mínima prevista.
-- Precipitação prevista.
-- Data de referência da previsão.
-- Data e horário da coleta.
-
-Os dados representam previsões meteorológicas,
-não observações históricas consolidadas.
-
-## 7. Estrutura do repositório
+## 6. Estrutura do repositório
 
 ```text
 weatherflow/
@@ -112,12 +83,21 @@ weatherflow/
 ├── data/
 │   └── raw/
 ├── docker/
+│   └── Dockerfile.airflow
 ├── docs/
 │   ├── arquitetura.md
 │   ├── execucao.md
 │   ├── observabilidade.md
+│   ├── evidencias.md
 │   └── evidencias/
+│       ├── airflow-dag.png
+│       ├── airflow-executions.png
+│       ├── postgres-quality.png
+│       ├── streamlit-dashboard.png
+│       └── tests-success.png
 ├── sql/
+│   ├── 001_schema.sql
+│   └── 002_data_quality.sql
 ├── src/
 │   └── weatherflow/
 │       ├── analytics.py
@@ -125,215 +105,222 @@ weatherflow/
 │       ├── extract.py
 │       ├── transform.py
 │       ├── load.py
+│       ├── main.py
 │       └── etl.py
 ├── tests/
+├── .env.example
 ├── compose.yaml
 ├── pyproject.toml
 ├── uv.lock
 └── README.md
 ```
 
-## 8. Instalação
+*Árvore resumida: outros arquivos de implementação, configuração e testes não estão listados.*
+
+## 7. Como executar localmente
 
 ### Pré-requisitos
 
-- Python 3.12
-- UV
-- Git
-- Docker Desktop
-- PowerShell, no Windows
+- Python 3.12 e [UV](https://docs.astral.sh/uv/).
+- Docker Desktop em execução.
+- Git.
+- PowerShell (nos exemplos abaixo, para Windows).
 
-### Clonar o projeto
+### 7.1. Clonar e instalar as dependências
 
 ```powershell
 git clone https://github.com/rafaelporfiriobarros/weatherflow.git
 cd weatherflow
-```
-
-### Instalar dependências
-
-```powershell
 uv sync --locked
 ```
 
-### Configuração
+### 7.2. Configurar o ambiente
 
-O projeto utiliza variáveis de ambiente para
-configuração do PostgreSQL.
+Crie o arquivo `.env` a partir do modelo:
 
-Consulte `.env.example` para identificar as
-variáveis necessárias.
+```powershell
+Copy-Item .env.example .env
+```
 
-Não publique credenciais reais no GitHub.
+Edite `.env` e substitua `CHANGE_ME` por uma senha local de sua escolha, mantendo **o mesmo valor** em `POSTGRES_PASSWORD` e na senha incorporada em `DATABASE_URL`.
 
-## 9. Execução
+> **Segurança:** não versione `.env` nem compartilhe credenciais. O arquivo `.env.example` contém apenas valores ilustrativos.
 
-### Extração meteorológica
+### 7.3. Iniciar o PostgreSQL
+
+```powershell
+docker compose up -d postgres
+docker compose ps
+```
+
+O PostgreSQL é disponibilizado localmente na porta `55435`. Na primeira criação do volume, o script `sql/001_schema.sql` inicializa o esquema. Em volumes já existentes, scripts de inicialização não são executados novamente automaticamente.
+
+### 7.4. Executar a extração e o carregamento
 
 ```powershell
 uv run python -m weatherflow.main
+uv run python -m weatherflow.etl
 ```
 
-### Dashboard
+A extração salva os dados brutos; o ETL processa os arquivos e carrega os registros no PostgreSQL.
+
+### 7.5. Iniciar o Apache Airflow
+
+```powershell
+docker compose up -d --build airflow
+```
+
+Acesse **http://localhost:8080**, localize a DAG `weatherflow_daily` e acompanhe as tarefas `extract_weather` e `load_weather`. A DAG também pode ser acionada manualmente pela interface. Consulte o [guia de execução](docs/execucao.md) para instruções de acesso e diagnóstico.
+
+### 7.6. Iniciar o dashboard
 
 ```powershell
 uv run streamlit run dashboard/app.py
 ```
 
-Acesse:
+Acesse **http://localhost:8501**.
 
-http://localhost:8501
+> Para uma reprodução completa, incluindo consultas de verificação e solução de problemas, consulte **[docs/execucao.md](docs/execucao.md)**.
 
-A execução completa do ETL, PostgreSQL e Airflow
-está documentada em
-[Guia de Execução](docs/execucao.md).
+## 8. Modelagem e idempotência
 
-## 10. Modelagem e idempotência
+Os registros são persistidos na tabela `weather_forecasts`. A regra de unicidade considera a combinação:
 
-Os dados meteorológicos são persistidos na tabela
-`weather_forecasts`.
+```text
+(city, forecast_date, collected_at)
+```
 
-A estratégia de unicidade considera:
+Essa chave permite reexecutar o carregamento de uma mesma coleta sem criar registros duplicados. Coletas em horários distintos podem produzir versões diferentes da previsão, preservadas no banco.
 
-- `city`
-- `forecast_date`
-- `collected_at`
+**Idempotência não significa manter apenas uma linha por cidade e dia:** significa que repetir o processamento da mesma entrada não deve gerar duplicatas indevidas.
 
-Isso permite reexecutar o carregamento da mesma
-coleta sem inserir registros duplicados.
+## 9. Qualidade dos dados e observabilidade
 
-Coletas realizadas em horários diferentes podem
-representar versões distintas da previsão.
+A consulta reproduzível **[sql/002_data_quality.sql](sql/002_data_quality.sql)** verifica quantidade de registros, cidades distintas, duplicações da chave composta e campos de identificação ausentes.
 
-## 11. Analytics e Streamlit
+Na última verificação documentada:
+
+| Indicador | Resultado |
+|---|---:|
+| Registros armazenados | 18 |
+| Cidades monitoradas | 3 |
+| Chaves duplicadas | 0 |
+| Identificações incompletas | 0 |
+
+Para executar a consulta no PostgreSQL do contêiner:
+
+```powershell
+Get-Content .\sql\002_data_quality.sql -Raw |
+    docker exec -i weatherflow-postgres psql -U weatherflow -d weatherflow
+```
+
+Esses números são uma **fotografia da base no momento da validação** e podem mudar após novas coletas. A ausência de duplicações na consulta complementa, mas não substitui, os testes de idempotência.
+
+A DAG foi identificada pelo Airflow sem erros de importação, e as execuções verificadas foram concluídas com sucesso. Detalhes e limitações estão em **[docs/observabilidade.md](docs/observabilidade.md)**.
+
+## 10. Analytics com Streamlit
 
 O dashboard permite:
 
-- Consultar previsões recentes.
-- Filtrar informações por cidade.
-- Filtrar informações por período.
-- Visualizar indicadores meteorológicos.
-- Comparar temperaturas.
+- Filtrar previsões por cidade e intervalo de datas.
+- Visualizar indicadores resumidos.
+- Comparar temperaturas máximas e mínimas previstas.
 - Analisar precipitação prevista.
-- Consultar uma tabela analítica.
-- Exportar resultados em CSV.
+- Consultar uma tabela de previsões.
+- Exportar os resultados filtrados em CSV.
 
-A camada analítica está implementada em
-`src/weatherflow/analytics.py`.
+A lógica de consulta e agregação está em `src/weatherflow/analytics.py`. Para cada combinação de cidade e data de previsão, a visualização utiliza a coleta mais recente disponível, evitando contar versões antigas como previsões atuais.
 
-## 12. Testes automatizados
+![Dashboard WeatherFlow](docs/evidencias/streamlit-dashboard.png)
 
-Executar:
+## 11. Testes automatizados e qualidade de código
+
+Execute os testes:
 
 ```powershell
 uv run pytest -q
 ```
 
-Resultado validado na conclusão da Etapa 5:
-
-**63 testes aprovados.**
-
-Os testes abrangem componentes do pipeline,
-consultas analíticas e interface Streamlit.
-
-Os testes do dashboard utilizam AppTest e mocks,
-permitindo validar cenários sem depender de
-consultas reais ao PostgreSQL.
-
-## 13. Qualidade de código
+Execute as verificações de código:
 
 ```powershell
 uv run ruff check .
 uv run ruff format --check .
 ```
 
-Na conclusão da Etapa 5:
+**Últimos resultados locais registrados:** 63 testes aprovados e `ruff check` sem erros. O projeto também possui testes do dashboard com Streamlit AppTest e mocks, sem exigir uma conexão real ao PostgreSQL nesses cenários.
 
-- 63 testes aprovados.
-- Ruff sem erros.
-- 21 arquivos formatados.
-- Branch `main` sincronizada.
+Os resultados são evidências da versão testada localmente; não devem ser interpretados como garantia de ausência de defeitos ou como confirmação automática do status atual do GitHub Actions.
 
-## 14. Segurança e confiabilidade
+## 12. Evidências técnicas
 
-O projeto utiliza:
+O repositório reúne capturas da DAG, histórico de execuções, qualidade dos dados, dashboard e testes automatizados.
 
-- Variáveis de ambiente para configurações sensíveis.
-- Arquivos `.env` fora do versionamento.
-- Tratamento de erros HTTP.
-- Validação de dados recebidos.
-- Testes automatizados.
-- Persistência com prevenção de duplicações.
-- Separação entre extração, transformação,
-  armazenamento e apresentação.
+**[Consultar todas as evidências técnicas](docs/evidencias.md)**
 
-## 15. Limitações
+| Componente | Evidência |
+|---|---|
+| Airflow — DAG | [Visualizar](docs/evidencias/airflow-dag.png) |
+| Airflow — execuções | [Visualizar](docs/evidencias/airflow-executions.png) |
+| PostgreSQL — qualidade | [Visualizar](docs/evidencias/postgres-quality.png) |
+| Streamlit — dashboard | [Visualizar](docs/evidencias/streamlit-dashboard.png) |
+| Pytest e Ruff | [Visualizar](docs/evidencias/tests-success.png) |
 
-O WeatherFlow é um projeto educacional.
+## 13. Segurança e confiabilidade
 
-Suas principais limitações incluem:
+O projeto aplica práticas adequadas ao seu escopo educacional:
+
+- Variáveis de ambiente para configuração sensível e exclusão do `.env` do versionamento.
+- Tratamento de erros na integração HTTP e validação de dados.
+- Separação de responsabilidades entre extração, transformação, persistência e visualização.
+- Prevenção de duplicações no carregamento.
+- Testes automatizados e verificações SQL de integridade.
+- Exposição local das portas dos serviços no Docker Compose.
+
+## 14. Limitações
+
+O WeatherFlow é um projeto educacional, executado em infraestrutura local. Suas limitações incluem:
 
 - Monitoramento de apenas três cidades.
-- Dependência de disponibilidade da API externa.
-- Execução em infraestrutura local.
-- Ausência de monitoramento operacional avançado.
-- Ausência de comparação com medições observadas.
+- Dependência da disponibilidade e do comportamento da API externa.
+- Ausência de alertas automáticos e monitoramento operacional avançado.
+- Ausência de comparação das previsões com medições meteorológicas observadas.
+- Ausência de avaliação de desempenho em grande escala.
 
-## 16. Roadmap
+Essas limitações são intencionais para manter o projeto reproduzível e apropriado ao aprendizado de fundamentos.
 
-| Etapa | Descrição | Status |
+## 15. Etapas do projeto
+
+| Etapa | Entrega | Status |
 |---|---|---|
-| 1 | Fundação e Engenharia de Software | Concluída |
-| 2 | Integração com Open-Meteo | Concluída |
+| 1 | Estrutura inicial e fundamentos | Concluída |
+| 2 | Extração da API Open-Meteo | Concluída |
 | 3 | Transformação e PostgreSQL | Concluída |
-| 4 | Apache Airflow e Docker | Concluída |
-| 5 | Analytics e Streamlit | Concluída |
-| 6 | Documentação e observabilidade básica | Em andamento |
+| 4 | Orquestração com Apache Airflow | Concluída |
+| 5 | Analytics com Streamlit | Concluída |
+| 6 | Documentação, observabilidade e evidências | Concluída |
 
-## 17. Aprendizados
+## 16. Aprendizados
 
-### Engenharia de Software
+**Engenharia de Software:** organização modular, separação de responsabilidades, gerenciamento de dependências, tratamento de erros, testes automatizados, mocks, lint, formatação e fluxo de trabalho com Git e Pull Requests.
 
-- Modularização e separação de responsabilidades.
-- Gerenciamento de dependências.
-- Tratamento de exceções.
-- Testes automatizados.
-- Mocks e testes de interface.
-- Lint e formatação.
-- Git, branches e Pull Requests.
+**Engenharia de Dados:** integração com APIs REST, preservação de dados brutos, transformação, validação, modelagem relacional, SQL, idempotência, orquestração e disponibilização de indicadores analíticos.
 
-### Engenharia de Dados
+## 17. Conclusão
 
-- Integração com APIs REST.
-- Extração e preservação de JSON.
-- Transformação e validação de dados.
-- Modelagem relacional.
-- SQL analítico.
-- Idempotência.
-- Orquestração de pipelines.
-- Construção de indicadores.
+O WeatherFlow demonstra a construção incremental de um pipeline de Engenharia de Dados que conecta **ingestão, processamento, armazenamento, orquestração, qualidade e análise**.
 
-## 18. Conclusão
-
-O WeatherFlow demonstra a construção incremental
-de uma solução de Engenharia de Dados, integrando
-fundamentos de Engenharia de Software, processamento
-ETL, persistência relacional, orquestração e Analytics.
-
-O foco não é utilizar o maior número possível de
-ferramentas, mas construir uma solução compreensível,
-testável, reproduzível e adequada ao problema proposto.
+O foco não é acumular ferramentas, mas construir uma solução **compreensível, testável, reproduzível e alinhada a um problema de negócio**, com escopo adequado a um projeto de portfólio de Engenharia de Dados Júnior.
 
 ## Autor
 
-Rafael Porfírio Barros
-
+**Rafael Porfírio Barros**
 [GitHub](https://github.com/rafaelporfiriobarros)
 
 ## Referências
 
-- [Open-Meteo](https://open-meteo.com/en/docs)
-- [Python](https://docs.python.org/3.12/)
+- [Open-Meteo — Documentação da API](https://open-meteo.com/en/docs)
+- [Python 3.12](https://docs.python.org/3.12/)
 - [PostgreSQL](https://www.postgresql.org/docs/)
 - [Apache Airflow](https://airflow.apache.org/docs/)
 - [Streamlit](https://docs.streamlit.io/)
