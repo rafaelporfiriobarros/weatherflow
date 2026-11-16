@@ -41,4 +41,11 @@ data/
 # Docker local
 docker-compose.override.yml
 
+# Apache Airflow
+airflow.cfg
+standalone_admin_password.txt
+airflow-webserver.pid
+airflow-scheduler.pid
+logs/
+
 

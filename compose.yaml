@@ -25,5 +25,35 @@ services:
       timeout: 3s
       retries: 10
 
+  airflow:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.airflow
+
+    container_name: weatherflow-airflow
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "False"
+
+      DATABASE_URL: postgresql://weatherflow:${POSTGRES_PASSWORD}@postgres:5432/weatherflow
+
+      PYTHONPATH: /opt/airflow/project/src
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    volumes:
+      - ./dags:/opt/airflow/dags:ro
+      - ./data/raw:/opt/airflow/project/data/raw
+
+    command: standalone
+
 volumes:
   weatherflow_pgdata:
